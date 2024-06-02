@@ -56,6 +56,17 @@ def lambda_handler(event: dict, context: dict) -> dict:
             message="Internal server error.",
         ).model_dump()
 
+    queue_url = os.environ.get("AMATERUS_CREATE_DOWNLOAD_VIDEO_QUEUE_URL")
+    if queue_url is None:
+        logger.error(
+            "Environment variable 'AMATERUS_CREATE_DOWNLOAD_VIDEO_QUEUE_URL' not set."
+        )
+
+        return AmaterusCreateDownloadVideoErrorResponse(
+            result="error",
+            message="Internal server error.",
+        ).model_dump()
+
     try:
         event_data = AmaterusCreateDownloadVideoEvent.model_validate(event)
     except ValidationError as error:
@@ -89,6 +100,21 @@ def lambda_handler(event: dict, context: dict) -> dict:
         )
     except botocore.exceptions.ClientError as error:
         logger.error(f"Failed to create item on DynamoDB table '{table_name}'")
+        logger.exception(error)
+
+        return AmaterusCreateDownloadVideoErrorResponse(
+            result="error",
+            message="Internal server error.",
+        ).model_dump()
+
+    sqs = boto3.client("sqs")
+    try:
+        sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody=video_item_id,
+        )
+    except botocore.exceptions.ClientError as error:
+        logger.error(f"Failed to send message to SQS queue '{queue_url}'")
         logger.exception(error)
 
         return AmaterusCreateDownloadVideoErrorResponse(
