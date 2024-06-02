@@ -61,16 +61,21 @@ jobs:
         env:
           DOCKER_METADATA_BUILDCACHE_OUTPUT_JSON: ${{ steps.meta-buildcache.outputs.json }}
         run: |
-          CACHE_FROM=""
-          CACHE_TO=""
+          {
+            echo "cache-from=<<EOF"
+            for tag in $(jq -r '.tags[]' <<< "$DOCKER_METADATA_BUILDCACHE_OUTPUT_JSON"); do
+              echo "type=registry,ref=${tag}"
+            done
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
-          for tag in $(jq -r '.tags[]' <<< "$DOCKER_METADATA_BUILDCACHE_OUTPUT_JSON"); do
-            CACHE_FROM="${CACHE_FROM}"$'\n'"type=registry,ref=${tag}"
-            CACHE_TO="${CACHE_TO}"$'\n'"type=registry,ref=${tag},mode=max"
-          done
-
-          echo "cache-from=${CACHE_FROM}" >> $GITHUB_OUTPUT
-          echo "cache-to=${CACHE_TO}" >> $GITHUB_OUTPUT
+          {
+            echo "cache-to=<<EOF"
+            for tag in $(jq -r '.tags[]' <<< "$DOCKER_METADATA_BUILDCACHE_OUTPUT_JSON"); do
+              echo "type=registry,ref=${tag},mode=max"
+            done
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Login to GitHub Container Registry (ghcr.io)
         if: github.event_name != 'pull_request'
