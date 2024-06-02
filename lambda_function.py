@@ -33,6 +33,7 @@ class AmaterusCreateDownloadVideoErrorResponse(BaseModel):
 @dataclass
 class PrepareVideoItemResult:
     item: dict
+    expression_attribute_names: dict[str, str]
     condition_expression: str
 
 
@@ -46,14 +47,20 @@ def prepare_youtube_video_item(
 ) -> PrepareVideoItemResult:
     return PrepareVideoItemResult(
         item={
-            "VideoId": {"S": video_item_id},
-            "Source": {"S": "youtube"},
-            "Status": {"S": "queuing"},
-            "YoutubeVideoId": {"S": youtube_video.youtube_video_id},
+            "#VideoId": {"S": video_item_id},
+            "#Source": {"S": "youtube"},
+            "#Status": {"S": "queuing"},
+            "#YoutubeVideoId": {"S": youtube_video.youtube_video_id},
         },
         condition_expression=(
-            "attribute_not_exists(Source) AND attribute_not_exists(YoutubeVideoId)"
+            "attribute_not_exists(#Source) AND attribute_not_exists(#YoutubeVideoId)"
         ),
+        expression_attribute_names={
+            "#VideoId": "VideoId",
+            "#Source": "Source",
+            "#Status": "Status",
+            "#YoutubeVideoId": "YoutubeVideoId",
+        },
     )
 
 
@@ -117,6 +124,7 @@ def lambda_handler(event: dict, context: dict) -> dict:
         dynamodb.put_item(
             TableName=table_name,
             Item=result.item,
+            ExpressionAttributeNames=result.expression_attribute_names,
             ConditionExpression=result.condition_expression,
         )
     except botocore.exceptions.ClientError as error:
