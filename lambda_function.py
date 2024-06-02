@@ -139,6 +139,7 @@ def lambda_handler(event: dict, context: dict) -> dict:
         sqs.send_message(
             QueueUrl=queue_url,
             MessageBody=video_item_id,
+            MessageGroupId="Group1",
         )
     except botocore.exceptions.ClientError as error:
         logger.error(f"Failed to send message to SQS queue '{queue_url}'")
