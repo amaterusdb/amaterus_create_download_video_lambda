@@ -19,8 +19,8 @@ class YoutubeVideo(BaseModel):
     site: Literal["youtube"]
     options: YoutubeVideoOptions
 
-    @computed_field
     @property
+    @computed_field
     def url(self) -> str:
         qs = urlencode(
             {
