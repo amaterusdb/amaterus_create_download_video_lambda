@@ -52,13 +52,13 @@ def prepare_youtube_video_item(
             "Status": {"S": "queuing"},
             "YoutubeVideoId": {"S": youtube_video.youtube_video_id},
         },
-        condition_expression=(
-            "attribute_not_exists(#Source) AND attribute_not_exists(#YoutubeVideoId)"
-        ),
         expression_attribute_names={
             "#Source": "Source",
             "#YoutubeVideoId": "YoutubeVideoId",
         },
+        condition_expression=(
+            "attribute_not_exists(#Source) AND attribute_not_exists(#YoutubeVideoId)"
+        ),
     )
 
 
