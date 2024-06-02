@@ -88,10 +88,13 @@ jobs:
       - name: Build and Deploy Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
           builder: ${{ steps.buildx.outputs.name }}
+          context: .
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
+          platforms: |
+            linux/amd64
+            linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: ${{ steps.meta-buildcache-vars.outputs.cache-from }}
           cache-to: ${{ steps.meta-buildcache-vars.outputs.cache-to }}
