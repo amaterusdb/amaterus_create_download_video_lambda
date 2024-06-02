@@ -1,33 +1,19 @@
 import os
+from dataclasses import dataclass
 from logging import getLogger
 from typing import Literal
-from urllib.parse import urlencode
 from uuid import uuid4
 
 import boto3
 import botocore.exceptions
-from pydantic import BaseModel, ValidationError, computed_field
+from pydantic import BaseModel, ValidationError
 
 logger = getLogger()
 
 
-class YoutubeVideoOptions(BaseModel):
-    video_id: str
-
-
 class YoutubeVideo(BaseModel):
     site: Literal["youtube"]
-    options: YoutubeVideoOptions
-
-    @property
-    @computed_field
-    def url(self) -> str:
-        qs = urlencode(
-            {
-                "v": self.options.video_id,
-            },
-        )
-        return f"https://www.youtube.com/watch?{qs}"
+    youtube_video_id: str
 
 
 class AmaterusCreateDownloadVideoEvent(BaseModel):
@@ -42,6 +28,33 @@ class AmaterusCreateDownloadVideoSuccessResponse(BaseModel):
 class AmaterusCreateDownloadVideoErrorResponse(BaseModel):
     result: Literal["error"]
     message: str
+
+
+@dataclass
+class PrepareVideoItemResult:
+    item: dict
+    condition_expression: str
+
+
+class PrepareVideoItemError(Exception):
+    pass
+
+
+def prepare_youtube_video_item(
+    video_item_id: str,
+    youtube_video: YoutubeVideo,
+) -> PrepareVideoItemResult:
+    return PrepareVideoItemResult(
+        item={
+            "VideoId": {"S": video_item_id},
+            "VideoType": {"S": "youtube"},
+            "Status": {"S": "queuing"},
+            "YoutubeVideoId": {"S": youtube_video.youtube_video_id},
+        },
+        condition_expression=(
+            "attribute_not_exists(VideoType) AND attribute_not_exists(YoutubeVideoId)"
+        ),
+    )
 
 
 def lambda_handler(event: dict, context: dict) -> dict:
@@ -79,24 +92,32 @@ def lambda_handler(event: dict, context: dict) -> dict:
         ).model_dump()
 
     video = event_data.video
-
     video_item_id = str(uuid4())
-    video_url = video.url
 
     dynamodb = boto3.client("dynamodb")
+    result: PrepareVideoItemResult | None = None
+    try:
+        if video.site == "youtube":
+            result = prepare_youtube_video_item(
+                video_item_id=video_item_id,
+                youtube_video=video,
+            )
+        else:
+            raise PrepareVideoItemError("Unsupported site.")
+    except PrepareVideoItemError as error:
+        logger.error("Failed to prepare video item")
+        logger.exception(error)
+
+        return AmaterusCreateDownloadVideoErrorResponse(
+            result="error",
+            message="Internal server error.",
+        ).model_dump()
+
     try:
         dynamodb.put_item(
             TableName=table_name,
-            Item={
-                "Id": {"S", video_item_id},
-                "Site": {"S", video.site},
-                "Status": {"S", "queuing"},
-                "Url": {
-                    "S",
-                    video_url,
-                },
-            },
-            ConditionExpression="attribute_not_exists(Site) AND attribute_not_exists(Url)",
+            Item=result.item,
+            ConditionExpression=result.condition_expression,
         )
     except botocore.exceptions.ClientError as error:
         logger.error(f"Failed to create item on DynamoDB table '{table_name}'")
