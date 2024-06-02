@@ -89,6 +89,7 @@ jobs:
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
           cache-from: ${{ steps.meta-buildcache-vars.outputs.cache-from }}
           cache-to: ${{ steps.meta-buildcache-vars.outputs.cache-to }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
