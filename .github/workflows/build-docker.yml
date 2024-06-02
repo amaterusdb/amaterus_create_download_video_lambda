@@ -62,7 +62,7 @@ jobs:
           DOCKER_METADATA_BUILDCACHE_OUTPUT_JSON: ${{ steps.meta-buildcache.outputs.json }}
         run: |
           {
-            echo "cache-from=<<EOF"
+            echo "cache-from<<EOF"
             for tag in $(jq -r '.tags[]' <<< "$DOCKER_METADATA_BUILDCACHE_OUTPUT_JSON"); do
               echo "type=registry,ref=${tag}"
             done
@@ -70,7 +70,7 @@ jobs:
           } >> $GITHUB_OUTPUT
 
           {
-            echo "cache-to=<<EOF"
+            echo "cache-to<<EOF"
             for tag in $(jq -r '.tags[]' <<< "$DOCKER_METADATA_BUILDCACHE_OUTPUT_JSON"); do
               echo "type=registry,ref=${tag},mode=max"
             done
