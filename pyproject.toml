@@ -16,7 +16,7 @@ py_version = "py311"
 
 [tool.poetry]
 package-mode = false
-name = "amaterus-enqueue-download-video-lambda"
+name = "amaterus-create-download-video-lambda"
 version = "0.0.0"
 description = ""
 authors = ["aoirint <aoirint@gmail.com>"]

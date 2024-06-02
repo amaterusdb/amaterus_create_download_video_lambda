@@ -16,7 +16,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: amaterus_enqueue_download_video_lambda
+  IMAGE_NAME: amaterus_create_download_video_lambda
 
 jobs:
   docker-build-and-push:

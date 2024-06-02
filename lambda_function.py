@@ -30,50 +30,50 @@ class YoutubeVideo(BaseModel):
         return f"https://www.youtube.com/watch?{qs}"
 
 
-class AmaterusEnqueueDownloadVideoEvent(BaseModel):
+class AmaterusCreateDownloadVideoEvent(BaseModel):
     video: YoutubeVideo
 
 
-class AmaterusEnqueueDownloadVideoSuccessResponse(BaseModel):
+class AmaterusCreateDownloadVideoSuccessResponse(BaseModel):
     result: Literal["success"]
     message: str
 
 
-class AmaterusEnqueueDownloadVideoErrorResponse(BaseModel):
+class AmaterusCreateDownloadVideoErrorResponse(BaseModel):
     result: Literal["error"]
     message: str
 
 
 def handler(event: dict, context: dict) -> dict:
-    table_name = os.environ.get("AMATERUS_ENQUEUE_DOWNLOAD_VIDEO_TABLE_NAME")
+    table_name = os.environ.get("AMATERUS_CREATE_DOWNLOAD_VIDEO_TABLE_NAME")
     if table_name is None:
         logger.error(
-            "Environment variable 'AMATERUS_ENQUEUE_DOWNLOAD_VIDEO_TABLE_NAME' not set."
+            "Environment variable 'AMATERUS_CREATE_DOWNLOAD_VIDEO_TABLE_NAME' not set."
         )
 
-        return AmaterusEnqueueDownloadVideoErrorResponse(
+        return AmaterusCreateDownloadVideoErrorResponse(
             result="error",
             message="Internal server error.",
         ).model_dump()
 
-    queue_url = os.environ.get("AMATERUS_ENQUEUE_DOWNLOAD_VIDEO_QUEUE_URL")
+    queue_url = os.environ.get("AMATERUS_CREATE_DOWNLOAD_VIDEO_QUEUE_URL")
     if queue_url is None:
         logger.error(
-            "Environment variable 'AMATERUS_ENQUEUE_DOWNLOAD_VIDEO_QUEUE_URL' not set."
+            "Environment variable 'AMATERUS_CREATE_DOWNLOAD_VIDEO_QUEUE_URL' not set."
         )
 
-        return AmaterusEnqueueDownloadVideoErrorResponse(
+        return AmaterusCreateDownloadVideoErrorResponse(
             result="error",
             message="Internal server error.",
         ).model_dump()
 
     try:
-        event_data = AmaterusEnqueueDownloadVideoEvent.model_validate(event)
+        event_data = AmaterusCreateDownloadVideoEvent.model_validate(event)
     except ValidationError as error:
         logger.error("Failed to validate event.")
         logger.exception(error)
 
-        return AmaterusEnqueueDownloadVideoErrorResponse(
+        return AmaterusCreateDownloadVideoErrorResponse(
             result="error",
             message="Bad request.",
         ).model_dump()
@@ -102,7 +102,7 @@ def handler(event: dict, context: dict) -> dict:
         logger.error(f"Failed to create item on DynamoDB table '{table_name}'")
         logger.exception(error)
 
-        return AmaterusEnqueueDownloadVideoErrorResponse(
+        return AmaterusCreateDownloadVideoErrorResponse(
             result="error",
             message="Internal server error.",
         ).model_dump()
@@ -117,12 +117,12 @@ def handler(event: dict, context: dict) -> dict:
         logger.error(f"Failed to send message to SQS queue '{queue_url}'")
         logger.exception(error)
 
-        return AmaterusEnqueueDownloadVideoErrorResponse(
+        return AmaterusCreateDownloadVideoErrorResponse(
             result="error",
             message="Internal server error.",
         ).model_dump()
 
-    return AmaterusEnqueueDownloadVideoSuccessResponse(
+    return AmaterusCreateDownloadVideoSuccessResponse(
         result="success",
         message="Succeeded.",
     ).model_dump()
