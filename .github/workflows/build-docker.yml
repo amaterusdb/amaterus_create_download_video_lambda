@@ -1,0 +1,96 @@
+name: Build Docker
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - 'main'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: amaterus_enqueue_download_video_lambda
+
+jobs:
+  docker-build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/amaterusdb/${{ env.IMAGE_NAME }}
+          tags: |
+            type=schedule,pattern={{date 'YYYY-MM-DDThh-mm-ssZ' tz='UTC'}}
+            type=ref,event=branch
+            type=ref,event=pr
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}
+            type=pep440,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Generate Docker build cache metadata
+        id: meta-buildcache
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/amaterusdb/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch,suffix=-buildcache
+            type=ref,event=pr,suffix=-buildcache
+
+      - name: Generate Docker build cache metadata vars
+        id: meta-buildcache-vars
+        shell: bash
+        run: |
+          $CACHE_FROM=""
+          $CACHE_TO=""
+
+          for tag in "{{ steps.meta-buildcache.outputs.tags }}"; do
+            $CACHE_FROM="${CACHE_FROM}\ntype=registry,ref=${tag}"
+            $CACHE_TO="${CACHE_TO}\ntype=registry,ref=${tag},mode=max"
+          done
+
+          echo "cache-from=${CACHE_FROM}" >> $GITHUB_OUTPUT
+          echo "cache-to=${CACHE_TO}" >> $GITHUB_OUTPUT
+
+      - name: Login to GitHub Container Registry (ghcr.io)
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: 'ghcr.io'
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Deploy Docker image
+        uses: docker/build-push-action@v5
+        env:
+          IMAGE_CACHE_FROM: 
+          IMAGE_CACHE_TO: 
+        with:
+          context: .
+          builder: ${{ steps.buildx.outputs.name }}
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: ${{ steps.meta-buildcache-vars.outputs.cache-from }}
+          cache-to: ${{ steps.meta-buildcache-vars.outputs.cache-to }}
