@@ -62,7 +62,7 @@ jobs:
           CACHE_FROM=""
           CACHE_TO=""
 
-          for tag in "${{ steps.meta-buildcache.outputs.tags }}"; do
+          for tag in $(jq -r '.tags[]' <<< "${{ steps.meta-buildcache.outputs.json }}"); do
             CACHE_FROM="${CACHE_FROM}"$'\n'"type=registry,ref=${tag}"
             CACHE_TO="${CACHE_TO}"$'\n'"type=registry,ref=${tag},mode=max"
           done
