@@ -15,9 +15,6 @@ permissions:
   contents: read
   packages: write
 
-env:
-  IMAGE_NAME: amaterus_create_download_video_lambda
-
 jobs:
   docker-build-and-push:
     runs-on: ubuntu-latest
