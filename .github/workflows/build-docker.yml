@@ -61,12 +61,12 @@ jobs:
         id: meta-buildcache-vars
         shell: bash
         run: |
-          $CACHE_FROM=""
-          $CACHE_TO=""
+          CACHE_FROM=""
+          CACHE_TO=""
 
           for tag in "{{ steps.meta-buildcache.outputs.tags }}"; do
-            $CACHE_FROM="${CACHE_FROM}\ntype=registry,ref=${tag}"
-            $CACHE_TO="${CACHE_TO}\ntype=registry,ref=${tag},mode=max"
+            CACHE_FROM="${CACHE_FROM}\ntype=registry,ref=${tag}"
+            CACHE_TO="${CACHE_TO}\ntype=registry,ref=${tag},mode=max"
           done
 
           echo "cache-from=${CACHE_FROM}" >> $GITHUB_OUTPUT
