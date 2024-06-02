@@ -58,11 +58,13 @@ jobs:
       - name: Generate Docker build cache metadata vars
         id: meta-buildcache-vars
         shell: bash
+        env:
+          DOCKER_METADATA_BUILDCACHE_OUTPUT_JSON: ${{ steps.meta-buildcache.outputs.json }}
         run: |
           CACHE_FROM=""
           CACHE_TO=""
 
-          for tag in $(jq -r '.tags[]' <<< "${{ steps.meta-buildcache.outputs.json }}"); do
+          for tag in $(jq -r '.tags[]' <<< "$DOCKER_METADATA_BUILDCACHE_OUTPUT_JSON"); do
             CACHE_FROM="${CACHE_FROM}"$'\n'"type=registry,ref=${tag}"
             CACHE_TO="${CACHE_TO}"$'\n'"type=registry,ref=${tag},mode=max"
           done
