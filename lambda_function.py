@@ -47,12 +47,12 @@ def prepare_youtube_video_item(
     return PrepareVideoItemResult(
         item={
             "VideoId": {"S": video_item_id},
-            "VideoType": {"S": "youtube"},
+            "Source": {"S": "youtube"},
             "Status": {"S": "queuing"},
             "YoutubeVideoId": {"S": youtube_video.youtube_video_id},
         },
         condition_expression=(
-            "attribute_not_exists(VideoType) AND attribute_not_exists(YoutubeVideoId)"
+            "attribute_not_exists(Source) AND attribute_not_exists(YoutubeVideoId)"
         ),
     )
 
