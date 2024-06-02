@@ -44,7 +44,7 @@ class AmaterusCreateDownloadVideoErrorResponse(BaseModel):
     message: str
 
 
-def handler(event: dict, context: dict) -> dict:
+def lambda_handler(event: dict, context: dict) -> dict:
     table_name = os.environ.get("AMATERUS_CREATE_DOWNLOAD_VIDEO_TABLE_NAME")
     if table_name is None:
         logger.error(
