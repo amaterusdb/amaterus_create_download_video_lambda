@@ -31,12 +31,11 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Generate Docker metadata
-        id: meta
+      - name: Generate Docker metadata for ghcr.io
+        id: meta-ghcr
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ghcr.io/amaterusdb/${{ env.IMAGE_NAME }}
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -45,12 +44,21 @@ jobs:
             type=pep440,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Generate Docker metadata for Amazon ECR
+        id: meta-ecr
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.ECR_REPOSITORY }}
+          tags: |
+            type=ref,event=branch
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}
+
       - name: Generate Docker build cache metadata
         id: meta-buildcache
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ghcr.io/amaterusdb/${{ env.IMAGE_NAME }}
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch,suffix=-buildcache
             type=ref,event=pr,suffix=-buildcache
@@ -85,6 +93,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to AWS
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ vars.ECR_REGION }}
+          role-to-assume: ${{ vars.ECR_ROLE_ARN }}
+
+      - name: Login to Amazon ECR
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build and Deploy Docker image
         uses: docker/build-push-action@v5
         with:
@@ -93,8 +112,10 @@ jobs:
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ steps.meta-ghcr.outputs.tags }}
+            ${{ steps.meta-ecr.outputs.tags }}
           cache-from: ${{ steps.meta-buildcache-vars.outputs.cache-from }}
           cache-to: ${{ steps.meta-buildcache-vars.outputs.cache-to }}
-          labels: ${{ steps.meta.outputs.labels }}
-          annotations: ${{ steps.meta.outputs.annotations }}
+          labels: ${{ steps.meta-ghcr.outputs.labels }}
+          annotations: ${{ steps.meta-ghcr.outputs.annotations }}
