@@ -117,3 +117,7 @@ jobs:
           cache-to: ${{ steps.meta-buildcache-vars.outputs.cache-to }}
           labels: ${{ steps.meta-ghcr.outputs.labels }}
           annotations: ${{ steps.meta-ghcr.outputs.annotations }}
+          # Workaround: Disable provenance to avoid multi-platform Docker image due to AWS Lambda does not support it.
+          # https://stackoverflow.com/questions/65608802/cant-deploy-container-image-to-lambda-function
+          # https://github.com/docker/buildx/issues/1509#issuecomment-1378538197
+          provenance: false
