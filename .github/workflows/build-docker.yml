@@ -92,9 +92,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          platforms: |
-            linux/amd64
-            linux/arm64
+          platforms: linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: ${{ steps.meta-buildcache-vars.outputs.cache-from }}
           cache-to: ${{ steps.meta-buildcache-vars.outputs.cache-to }}
